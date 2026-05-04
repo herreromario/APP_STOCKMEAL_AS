@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -33,11 +34,23 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+val GreenPrimary = Color(0xFF2E7D32)
+
+private val LightColors = lightColorScheme(
+    primary = Color(0xFF2E7D32),
+    secondary = Color(0xFF81C784),
+    background = Color(0xFFF5F5F5),
+    surface = Color.White,
+    error = Color(0xFFD32F2F),
+    onPrimary = Color.White,
+    onSurface = Color(0xFF1C1B1F)
+)
+
 @Composable
 fun StockMealTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -47,7 +60,7 @@ fun StockMealTheme(
         }
 
         darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else -> LightColors
     }
 
     MaterialTheme(

@@ -6,4 +6,6 @@
     <string name="registrar_produccion">Registrar producción</string>
     <string name="recetas">Recetas</string>
     <string name="stock">Stock</string>
+    <string name="produccion_de_hoy">Producción de hoy</string>
+    <string name="no_se_han_encontrado_registros">No se han encontrado registros</string>
 </resources>

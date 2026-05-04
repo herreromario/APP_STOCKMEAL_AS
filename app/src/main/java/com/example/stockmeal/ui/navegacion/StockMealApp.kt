@@ -120,8 +120,19 @@ fun StockMealApp() {
         ) {
 
             composable(Pantallas.Dashboard.name) {
-                PantallaDashboard(navController)
+                PantallaDashboard(
+                    onVerAlertas = {
+                        navController.navigate(Pantallas.Stock.name) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
+
 
             composable(Pantallas.RegistrarProduccion.name) {
                 PantallaRegistrarProduccion(navController)
