@@ -1,5 +1,7 @@
 package com.example.stockmeal.ui.navegacion
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -28,14 +30,17 @@ import androidx.navigation.compose.rememberNavController
 import com.example.stockmeal.R
 import com.example.stockmeal.modelos.BottomItem
 import com.example.stockmeal.ui.pantallas.PantallaDashboard
+import com.example.stockmeal.ui.pantallas.PantallaRecetaDetalle
 import com.example.stockmeal.ui.pantallas.PantallaRecetas
 import com.example.stockmeal.ui.pantallas.PantallaRegistrarProduccion
-import com.example.stockmeal.ui.pantallas.PantallaStock
+import com.example.stockmeal.ui.pantallas.Stock
+import com.example.stockmeal.ui.viewmodel.RecetasViewModel
 
 enum class Pantallas(@StringRes val titulo: Int) {
     Dashboard(R.string.dashboard),
     RegistrarProduccion(R.string.registrar_produccion),
     Recetas(R.string.recetas),
+    RecetaDetalle(R.string.detalles_de_la_receta),
     Stock(R.string.stock)
 }
 
@@ -60,6 +65,7 @@ val bottomItems = listOf(
     )
 )
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun StockMealApp() {
 
@@ -67,7 +73,8 @@ fun StockMealApp() {
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val rutaActual = backStackEntry?.destination?.route ?: Pantallas.Dashboard.name
-    val pantallaActual = Pantallas.valueOf(rutaActual)
+    val rutaBase = rutaActual.substringBefore("/")
+    val pantallaActual = Pantallas.valueOf(rutaBase)
 
     Scaffold(
 
@@ -139,11 +146,26 @@ fun StockMealApp() {
             }
 
             composable(Pantallas.Recetas.name) {
-                PantallaRecetas(navController)
+                PantallaRecetas(
+                    onDetallesReceta = { id ->
+                        navController.navigate("${Pantallas.RecetaDetalle.name}/$id")
+                    }
+                )
+            }
+
+            composable("${Pantallas.RecetaDetalle.name}/{id}") { backStackEntry ->
+
+                val id = backStackEntry.arguments
+                    ?.getString("id")
+                    ?.toIntOrNull()
+
+                if (id != null) {
+                    PantallaRecetaDetalle(idReceta = id)
+                }
             }
 
             composable(Pantallas.Stock.name) {
-                PantallaStock(navController)
+                Stock(navController)
             }
         }
     }

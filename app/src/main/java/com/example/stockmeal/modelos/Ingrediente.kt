@@ -8,7 +8,7 @@ data class Ingrediente (
     @SerialName("nombre")
     val nombre: String,
     @SerialName("cantidad")
-    val cantidad: Int,
+    val cantidad: Double,
     @SerialName("unidad")
     val unidad: String
 )

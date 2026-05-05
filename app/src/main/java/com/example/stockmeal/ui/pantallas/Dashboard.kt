@@ -1,5 +1,7 @@
 package com.example.stockmeal.ui.pantallas
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +45,7 @@ import com.example.stockmeal.ui.navegacion.Pantallas
 import com.example.stockmeal.ui.state.AppUIState
 import com.example.stockmeal.ui.viewmodel.DashboardViewModel
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun PantallaDashboard(
     viewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory),
@@ -140,7 +143,11 @@ fun TarjetaBase(
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 6.dp,
+            pressedElevation = 6.dp,
+
+        ),
         colors = CardDefaults.cardColors(containerColor = containerColor),
         onClick = onClick ?: {}
     ) {
@@ -176,7 +183,9 @@ fun TarjetaBase(
 }
 
 @Composable
-fun TarjetaProduccion(produccion: Produccion) {
+fun TarjetaProduccion(
+    produccion: Produccion
+) {
 
     TarjetaBase(
 

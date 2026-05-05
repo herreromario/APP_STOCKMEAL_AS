@@ -19,6 +19,7 @@ import com.example.stockmeal.ui.state.AppUIState
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+@RequiresApi(Build.VERSION_CODES.O)
 class DashboardViewModel(
     private val produccionRepository: ProduccionRepository,
     private val productoRepository: ProductoRepository

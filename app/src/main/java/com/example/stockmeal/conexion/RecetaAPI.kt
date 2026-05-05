@@ -1,6 +1,7 @@
 package com.example.stockmeal.conexion
 
 import com.example.stockmeal.modelos.Receta
+import com.example.stockmeal.modelos.RecetaDetalle
 import retrofit2.http.GET
 import retrofit2.http.Path
 
@@ -11,5 +12,5 @@ interface RecetaAPI {
     @GET("recetas/{idReceta}")
     suspend fun obtenerRecetaPorId(
         @Path("idReceta") idReceta: Int
-    ): Receta
+    ): RecetaDetalle
 }
