@@ -18,10 +18,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cookie
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +46,7 @@ import com.example.stockmeal.ui.viewmodel.StockViewModel
 @Composable
 fun Stock(
     navController: NavController,
+    filtrarAlertasInicialmente: Boolean = false,
     viewModel: StockViewModel = viewModel(factory = StockViewModel.Factory)
 ) {
     val stockState = viewModel.stockState
@@ -48,37 +55,72 @@ fun Stock(
         is AppUIState.Error -> PantallaError()
         is AppUIState.Cargando -> PantallaCargando()
         is AppUIState.Exito -> PantallaStockExito(
-            listaIngredientes = stockState.datos
+            listaIngredientes = stockState.datos,
+            filtrarAlertasInicialmente = filtrarAlertasInicialmente
         )
     }
 }
 
 @Composable
 fun PantallaStockExito(
-    listaIngredientes: List<IngredienteStockUI>
+    listaIngredientes: List<IngredienteStockUI>,
+    filtrarAlertasInicialmente: Boolean = false
 ) {
+    var mostrarSoloAlertas by remember(filtrarAlertasInicialmente) {
+        mutableStateOf(filtrarAlertasInicialmente)
+    }
+    val ingredientesFiltrados = if (mostrarSoloAlertas) {
+        listaIngredientes.filter { it.enAlerta }
+    } else {
+        listaIngredientes
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp)
     ) {
-        Text(
-            text = stringResource(R.string.stock),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(12.dp)
-        )
-
-        if (listaIngredientes.isEmpty()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = stringResource(R.string.no_se_han_encontrado_registros),
+                text = stringResource(R.string.stock),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+
+            FilterChip(
+                selected = mostrarSoloAlertas,
+                onClick = { mostrarSoloAlertas = !mostrarSoloAlertas },
+                label = { Text("Alertas") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            )
+        }
+
+        if (ingredientesFiltrados.isEmpty()) {
+            Text(
+                text = if (mostrarSoloAlertas) {
+                    "No hay ingredientes en alerta"
+                } else {
+                    stringResource(R.string.no_se_han_encontrado_registros)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(12.dp)
             )
         } else {
             LazyColumn {
-                items(listaIngredientes) { ingredienteStock ->
+                items(ingredientesFiltrados) { ingredienteStock ->
                     TarjetaIngredienteStock(ingredienteStock)
                 }
             }

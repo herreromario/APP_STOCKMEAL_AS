@@ -99,7 +99,7 @@ fun StockMealApp() {
             NavigationBar {
                 bottomItems.forEach { item ->
 
-                    val selected = rutaActual == item.ruta
+                    val selected = rutaBase == item.ruta
 
                     NavigationBarItem(
                         selected = selected,
@@ -147,7 +147,7 @@ fun StockMealApp() {
                         dashboardBackStackEntry.savedStateHandle[PRODUCCION_REGISTRADA] = false
                     },
                     onVerAlertas = {
-                        navController.navigate(Pantallas.Stock.name) {
+                        navController.navigate("${Pantallas.Stock.name}/true") {
                             popUpTo(navController.graph.startDestinationId) {
                                 saveState = true
                             }
@@ -190,7 +190,22 @@ fun StockMealApp() {
             }
 
             composable(Pantallas.Stock.name) {
-                Stock(navController)
+                Stock(
+                    navController = navController,
+                    filtrarAlertasInicialmente = false
+                )
+            }
+
+            composable("${Pantallas.Stock.name}/{filtrarAlertas}") { backStackEntry ->
+                val filtrarAlertas = backStackEntry.arguments
+                    ?.getString("filtrarAlertas")
+                    ?.toBooleanStrictOrNull()
+                    ?: false
+
+                Stock(
+                    navController = navController,
+                    filtrarAlertasInicialmente = filtrarAlertas
+                )
             }
         }
     }
