@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Dining
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.RestaurantMenu
@@ -26,10 +27,12 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,9 +52,19 @@ import com.example.stockmeal.ui.viewmodel.DashboardViewModel
 @Composable
 fun PantallaDashboard(
     viewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory),
-    onVerAlertas: () -> Unit
+    refrescarProduccion: Boolean = false,
+    onRefrescoProduccionConsumido: () -> Unit = {},
+    onVerAlertas: () -> Unit,
+    onRegistrarProduccion: () -> Unit
 ) {
     val state = viewModel.state
+
+    LaunchedEffect(refrescarProduccion) {
+        if (refrescarProduccion) {
+            viewModel.obtenerDatosDashboard()
+            onRefrescoProduccionConsumido()
+        }
+    }
 
     when (state) {
 
@@ -60,7 +73,8 @@ fun PantallaDashboard(
         is AppUIState.Exito -> PantallaDashboardExito(
             listaProduccion = state.datos,
             alertas = viewModel.numeroAlertas,
-            onVerAlertas = onVerAlertas
+            onVerAlertas = onVerAlertas,
+            onRegistrarProduccion = onRegistrarProduccion
         )
     }
 }
@@ -69,14 +83,19 @@ fun PantallaDashboard(
 fun PantallaDashboardExito(
     listaProduccion: List<Produccion>,
     alertas: Int,
-    onVerAlertas: () -> Unit
+    onVerAlertas: () -> Unit,
+    onRegistrarProduccion: () -> Unit
 ) {
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp)
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp)
+        ) {
 
         // PRODUCCIÓN
         Column(
@@ -115,6 +134,22 @@ fun PantallaDashboardExito(
             TarjetaAlertaStock(
                 alertas = alertas,
                 onClick = { onVerAlertas() }
+            )
+        }
+        }
+
+        FloatingActionButton(
+            onClick = onRegistrarProduccion,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(
+                    end = 24.dp,
+                    bottom = if (alertas > 0) 124.dp else 24.dp
+                )
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = null
             )
         }
     }

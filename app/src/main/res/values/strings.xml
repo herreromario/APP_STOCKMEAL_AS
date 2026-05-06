@@ -4,6 +4,7 @@
     <string name="error">error</string>
     <string name="dashboard">Dashboard</string>
     <string name="registrar_produccion">Registrar producción</string>
+    <string name="seleccionar_plato">Seleccionar plato</string>
     <string name="recetas">Recetas</string>
     <string name="stock">Stock</string>
     <string name="produccion_de_hoy">Producción de hoy</string>

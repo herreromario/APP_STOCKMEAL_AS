@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.Dashboard
@@ -14,11 +15,13 @@ import androidx.compose.material.icons.outlined.Warehouse
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -33,12 +36,14 @@ import com.example.stockmeal.ui.pantallas.PantallaDashboard
 import com.example.stockmeal.ui.pantallas.PantallaRecetaDetalle
 import com.example.stockmeal.ui.pantallas.PantallaRecetas
 import com.example.stockmeal.ui.pantallas.PantallaRegistrarProduccion
+import com.example.stockmeal.ui.pantallas.PantallaSeleccionarPlatoProduccion
+import com.example.stockmeal.ui.pantallas.PRODUCCION_REGISTRADA
 import com.example.stockmeal.ui.pantallas.Stock
-import com.example.stockmeal.ui.viewmodel.RecetasViewModel
 
 enum class Pantallas(@StringRes val titulo: Int) {
     Dashboard(R.string.dashboard),
     RegistrarProduccion(R.string.registrar_produccion),
+    SeleccionarPlatoProduccion(R.string.seleccionar_plato),
     Recetas(R.string.recetas),
     RecetaDetalle(R.string.detalles_de_la_receta),
     Stock(R.string.stock)
@@ -75,13 +80,18 @@ fun StockMealApp() {
     val rutaActual = backStackEntry?.destination?.route ?: Pantallas.Dashboard.name
     val rutaBase = rutaActual.substringBefore("/")
     val pantallaActual = Pantallas.valueOf(rutaBase)
+    val esPantallaPrincipal = bottomItems.any { it.ruta == rutaBase }
+    val puedeNavegarAtras = !esPantallaPrincipal && navController.previousBackStackEntry != null
 
     Scaffold(
 
         topBar = {
             AppTopBar(
                 pantallaActual = pantallaActual,
-                navController = navController
+                puedeNavegarAtras = puedeNavegarAtras,
+                onNavegarAtras = {
+                    navController.popBackStack()
+                }
             )
         },
 
@@ -126,8 +136,16 @@ fun StockMealApp() {
             modifier = Modifier.padding(padding)
         ) {
 
-            composable(Pantallas.Dashboard.name) {
+            composable(Pantallas.Dashboard.name) { dashboardBackStackEntry ->
+                val refrescarProduccion by dashboardBackStackEntry.savedStateHandle
+                    .getStateFlow(PRODUCCION_REGISTRADA, false)
+                    .collectAsState()
+
                 PantallaDashboard(
+                    refrescarProduccion = refrescarProduccion,
+                    onRefrescoProduccionConsumido = {
+                        dashboardBackStackEntry.savedStateHandle[PRODUCCION_REGISTRADA] = false
+                    },
                     onVerAlertas = {
                         navController.navigate(Pantallas.Stock.name) {
                             popUpTo(navController.graph.startDestinationId) {
@@ -136,6 +154,9 @@ fun StockMealApp() {
                             launchSingleTop = true
                             restoreState = true
                         }
+                    },
+                    onRegistrarProduccion = {
+                        navController.navigate(Pantallas.RegistrarProduccion.name)
                     }
                 )
             }
@@ -143,6 +164,10 @@ fun StockMealApp() {
 
             composable(Pantallas.RegistrarProduccion.name) {
                 PantallaRegistrarProduccion(navController)
+            }
+
+            composable(Pantallas.SeleccionarPlatoProduccion.name) {
+                PantallaSeleccionarPlatoProduccion(navController)
             }
 
             composable(Pantallas.Recetas.name) {
@@ -175,9 +200,20 @@ fun StockMealApp() {
 @Composable
 fun AppTopBar(
     pantallaActual: Pantallas,
-    navController: NavController
+    puedeNavegarAtras: Boolean,
+    onNavegarAtras: () -> Unit
 ) {
     CenterAlignedTopAppBar(
+        navigationIcon = {
+            if (puedeNavegarAtras) {
+                IconButton(onClick = onNavegarAtras) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null
+                    )
+                }
+            }
+        },
         title = {
             Text(stringResource(pantallaActual.titulo))
         }
