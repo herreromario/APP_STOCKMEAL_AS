@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.stockmeal.modelos.CapacidadProduccion
 import com.example.stockmeal.modelos.Producto
 import com.example.stockmeal.ui.state.AppUIState
 import com.example.stockmeal.ui.viewmodel.RegistrarProduccionViewModel
@@ -51,6 +53,7 @@ fun PantallaRegistrarProduccion(
     )
 ) {
     val platosState = viewModel.platosState
+    val capacidadState = viewModel.capacidadState
     val registroState = viewModel.registroState
     val formState = viewModel.formState
     val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
@@ -80,6 +83,7 @@ fun PantallaRegistrarProduccion(
         is AppUIState.Cargando -> PantallaCargando()
         is AppUIState.Exito -> PantallaRegistrarProduccionExito(
             platos = platosState.datos,
+            capacidadState = capacidadState,
             idProductoSeleccionado = formState.idProductoSeleccionado,
             cantidad = formState.cantidad,
             fecha = formState.fecha,
@@ -99,6 +103,7 @@ fun PantallaRegistrarProduccion(
 @Composable
 fun PantallaRegistrarProduccionExito(
     platos: List<Producto>,
+    capacidadState: AppUIState<List<CapacidadProduccion>>,
     idProductoSeleccionado: Int?,
     cantidad: String,
     fecha: String,
@@ -111,6 +116,24 @@ fun PantallaRegistrarProduccionExito(
     onRegistrar: () -> Unit
 ) {
     val platoSeleccionado = platos.firstOrNull { it.idProducto == idProductoSeleccionado }
+    val maximoUnidades = when (capacidadState) {
+        is AppUIState.Exito -> {
+            idProductoSeleccionado?.let { idProducto ->
+                capacidadState.datos.firstOrNull { it.idProducto == idProducto }?.unidadesPosibles ?: 0
+            }
+        }
+        else -> null
+    }
+    val textoCapacidad = when {
+        platoSeleccionado == null -> "Selecciona un plato para ver la capacidad"
+        capacidadState is AppUIState.Cargando -> "Calculando unidades disponibles"
+        capacidadState is AppUIState.Error -> "No se pudo calcular la capacidad"
+        maximoUnidades == 1 -> "Puedes producir 1 unidad"
+        maximoUnidades == 0 -> "No puedes producir este plato"
+        maximoUnidades != null -> "Puedes producir hasta $maximoUnidades unidades"
+        else -> "Selecciona un plato para ver la capacidad"
+    }
+    val puedeRegistrar = !registrando && platoSeleccionado != null && maximoUnidades != null && maximoUnidades > 0
 
     Column(
         modifier = Modifier
@@ -132,8 +155,14 @@ fun PantallaRegistrarProduccionExito(
 
         SelectorCantidadProduccion(
             cantidad = cantidad,
+            maximoUnidades = maximoUnidades,
             onIncrementarCantidad = onIncrementarCantidad,
             onDecrementarCantidad = onDecrementarCantidad
+        )
+
+        TarjetaCapacidadProduccion(
+            texto = textoCapacidad,
+            sinCapacidad = maximoUnidades == 0
         )
 
         Text(
@@ -154,7 +183,7 @@ fun PantallaRegistrarProduccionExito(
 
         Button(
             onClick = onRegistrar,
-            enabled = !registrando,
+            enabled = puedeRegistrar,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp)
@@ -212,9 +241,14 @@ fun TarjetaSeleccionPlato(
 @Composable
 fun SelectorCantidadProduccion(
     cantidad: String,
+    maximoUnidades: Int?,
     onIncrementarCantidad: () -> Unit,
     onDecrementarCantidad: () -> Unit
 ) {
+    val cantidadNumerica = cantidad.toIntOrNull() ?: 0
+    val puedeDecrementar = cantidadNumerica > if (maximoUnidades == 0) 0 else 1
+    val puedeIncrementar = maximoUnidades == null || cantidadNumerica < maximoUnidades
+
     TarjetaBase(
         contentLeft = {
             Text(
@@ -222,13 +256,23 @@ fun SelectorCantidadProduccion(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
+            if (maximoUnidades != null) {
+                Text(
+                    text = "Maximo: $maximoUnidades",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         },
         contentRight = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                IconButton(onClick = onDecrementarCantidad) {
+                IconButton(
+                    onClick = onDecrementarCantidad,
+                    enabled = puedeDecrementar
+                ) {
                     Icon(
                         imageVector = Icons.Filled.Remove,
                         contentDescription = null
@@ -242,7 +286,10 @@ fun SelectorCantidadProduccion(
                     color = Color(0xFF2E7D32)
                 )
 
-                IconButton(onClick = onIncrementarCantidad) {
+                IconButton(
+                    onClick = onIncrementarCantidad,
+                    enabled = puedeIncrementar
+                ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
                         contentDescription = null
@@ -250,6 +297,40 @@ fun SelectorCantidadProduccion(
                 }
             }
         }
+    )
+}
+
+@Composable
+fun TarjetaCapacidadProduccion(
+    texto: String,
+    sinCapacidad: Boolean
+) {
+    val color = if (sinCapacidad) Color(0xFFC62828) else Color(0xFF2E7D32)
+
+    TarjetaBase(
+        containerColor = if (sinCapacidad) Color(0xFFFFEBEE) else MaterialTheme.colorScheme.surface,
+        leading = {
+            Icon(
+                imageVector = if (sinCapacidad) Icons.Filled.Warning else Icons.Filled.Check,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(30.dp)
+            )
+        },
+        contentLeft = {
+            Text(
+                text = if (sinCapacidad) "Capacidad no disponible" else "Capacidad disponible",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (sinCapacidad) color else MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = texto,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (sinCapacidad) color else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        contentRight = {}
     )
 }
 

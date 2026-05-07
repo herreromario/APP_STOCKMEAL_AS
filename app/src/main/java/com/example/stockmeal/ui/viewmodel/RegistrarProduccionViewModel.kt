@@ -12,6 +12,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.stockmeal.StockMealAplicacion
 import com.example.stockmeal.datos.repositorios.ProduccionRepository
 import com.example.stockmeal.datos.repositorios.ProductoRepository
+import com.example.stockmeal.datos.repositorios.RecetaRepository
+import com.example.stockmeal.modelos.CapacidadProduccion
 import com.example.stockmeal.modelos.Produccion
 import com.example.stockmeal.modelos.ProduccionRequest
 import com.example.stockmeal.modelos.Producto
@@ -33,10 +35,14 @@ data class RegistrarProduccionFormState(
 
 class RegistrarProduccionViewModel(
     private val produccionRepository: ProduccionRepository,
-    private val productoRepository: ProductoRepository
+    private val productoRepository: ProductoRepository,
+    private val recetaRepository: RecetaRepository
 ) : ViewModel() {
 
     var platosState by mutableStateOf<AppUIState<List<Producto>>>(AppUIState.Cargando)
+        private set
+
+    var capacidadState by mutableStateOf<AppUIState<List<CapacidadProduccion>>>(AppUIState.Cargando)
         private set
 
     var formState by mutableStateOf(RegistrarProduccionFormState())
@@ -47,6 +53,7 @@ class RegistrarProduccionViewModel(
 
     init {
         obtenerPlatos()
+        obtenerCapacidadProduccion()
     }
 
     fun obtenerPlatos() {
@@ -62,32 +69,60 @@ class RegistrarProduccionViewModel(
         }
     }
 
+    fun obtenerCapacidadProduccion() {
+        viewModelScope.launch {
+            capacidadState = AppUIState.Cargando
+            try {
+                capacidadState = AppUIState.Exito(recetaRepository.obtenerCapacidadProduccion())
+                ajustarCantidadAlMaximo()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                capacidadState = AppUIState.Error("Error cargando la capacidad de produccion")
+            }
+        }
+    }
+
     fun seleccionarProducto(idProducto: Int) {
+        val maximo = maximoUnidades(idProducto)
+        val cantidad = when {
+            maximo == null -> formState.cantidad
+            maximo <= 0 -> "0"
+            else -> (formState.cantidad.toIntOrNull() ?: 1).coerceIn(1, maximo).toString()
+        }
+
         formState = formState.copy(
             idProductoSeleccionado = idProducto,
+            cantidad = cantidad,
             mensajeError = null
         )
     }
 
     fun actualizarCantidad(cantidad: String) {
+        val cantidadNumerica = cantidad.filter { it.isDigit() }.toIntOrNull()
+        val cantidadAjustada = ajustarCantidadPermitida(cantidadNumerica)
+
         formState = formState.copy(
-            cantidad = cantidad.filter { it.isDigit() },
+            cantidad = cantidadAjustada,
             mensajeError = null
         )
     }
 
     fun incrementarCantidad() {
         val cantidadActual = formState.cantidad.toIntOrNull() ?: 1
+        val cantidadAjustada = ajustarCantidadPermitida(cantidadActual + 1)
+
         formState = formState.copy(
-            cantidad = (cantidadActual + 1).toString(),
+            cantidad = cantidadAjustada,
             mensajeError = null
         )
     }
 
     fun decrementarCantidad() {
         val cantidadActual = formState.cantidad.toIntOrNull() ?: 1
+        val cantidadAjustada = ajustarCantidadPermitida(cantidadActual - 1)
+
         formState = formState.copy(
-            cantidad = (cantidadActual - 1).coerceAtLeast(1).toString(),
+            cantidad = cantidadAjustada,
             mensajeError = null
         )
     }
@@ -103,6 +138,22 @@ class RegistrarProduccionViewModel(
 
         if (cantidad == null || cantidad <= 0) {
             formState = formState.copy(mensajeError = "Introduce una cantidad valida")
+            return
+        }
+
+        val maximo = maximoUnidades(idProducto)
+        if (maximo == null) {
+            formState = formState.copy(mensajeError = "Espera a que se calcule la capacidad disponible")
+            return
+        }
+
+        if (maximo <= 0) {
+            formState = formState.copy(mensajeError = "No hay stock suficiente para producir este plato")
+            return
+        }
+
+        if (cantidad > maximo) {
+            formState = formState.copy(mensajeError = "La cantidad maxima para este plato es $maximo")
             return
         }
 
@@ -124,6 +175,7 @@ class RegistrarProduccionViewModel(
 
                 registroState = AppUIState.Exito(produccion)
                 formState = RegistrarProduccionFormState(fecha = formState.fecha)
+                obtenerCapacidadProduccion()
             } catch (e: Exception) {
                 e.printStackTrace()
                 registroState = AppUIState.Error(mensajeErrorRegistro(e))
@@ -141,12 +193,38 @@ class RegistrarProduccionViewModel(
                 val aplicacion = (this[APPLICATION_KEY] as StockMealAplicacion)
                 val produccionRepository = aplicacion.contenedorStockMeal.produccionRepository
                 val productoRepository = aplicacion.contenedorStockMeal.productoRepository
+                val recetaRepository = aplicacion.contenedorStockMeal.recetaRepository
                 RegistrarProduccionViewModel(
                     produccionRepository = produccionRepository,
-                    productoRepository = productoRepository
+                    productoRepository = productoRepository,
+                    recetaRepository = recetaRepository
                 )
             }
         }
+    }
+
+    private fun maximoUnidades(idProducto: Int): Int? {
+        val capacidades = (capacidadState as? AppUIState.Exito)?.datos ?: return null
+        return capacidades.firstOrNull { it.idProducto == idProducto }?.unidadesPosibles ?: 0
+    }
+
+    private fun ajustarCantidadPermitida(cantidad: Int?): String {
+        val maximo = formState.idProductoSeleccionado?.let { maximoUnidades(it) }
+        val valor = cantidad ?: 0
+
+        return when {
+            maximo == null -> valor.coerceAtLeast(1).toString()
+            maximo <= 0 -> "0"
+            else -> valor.coerceIn(1, maximo).toString()
+        }
+    }
+
+    private fun ajustarCantidadAlMaximo() {
+        val idProducto = formState.idProductoSeleccionado ?: return
+        formState = formState.copy(
+            cantidad = ajustarCantidadPermitida(formState.cantidad.toIntOrNull()),
+            mensajeError = null
+        )
     }
 }
 

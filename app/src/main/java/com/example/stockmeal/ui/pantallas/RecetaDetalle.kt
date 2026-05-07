@@ -3,39 +3,36 @@ package com.example.stockmeal.ui.pantallas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.stockmeal.modelos.Ingrediente
-import com.example.stockmeal.modelos.RecetaDetalle
 import com.example.stockmeal.ui.state.AppUIState
+import com.example.stockmeal.ui.viewmodel.IngredienteDetalleUI
+import com.example.stockmeal.ui.viewmodel.RecetaDetalleUI
 import com.example.stockmeal.ui.viewmodel.RecetasViewModel
 
 @Composable
-fun PantallaRecetaDetalle (
+fun PantallaRecetaDetalle(
     idReceta: Int,
     viewModel: RecetasViewModel = viewModel(factory = RecetasViewModel.Factory)
 ) {
-
     val recetaDetalleState = viewModel.recetaDetalleState
 
     LaunchedEffect(idReceta) {
@@ -53,32 +50,26 @@ fun PantallaRecetaDetalle (
 
 @Composable
 fun PantallaRecetaDetalleExito(
-    recetaDetalle: RecetaDetalle
-){
+    recetaDetalle: RecetaDetalleUI
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(12.dp)
     ) {
-
         HeaderReceta(recetaDetalle)
 
-        Spacer(modifier = Modifier.height(12.dp))
-
         ListaIngredientesTicket(recetaDetalle.ingredientes)
-
-        Spacer(modifier = Modifier.weight(1f))
-
     }
 }
 
 @Composable
 fun HeaderReceta(
-    receta: RecetaDetalle
+    receta: RecetaDetalleUI
 ) {
+    val estado = estadoCocinado(receta.unidadesPosibles)
 
     TarjetaBase(
-
         leading = {
             Icon(
                 imageVector = Icons.Default.Book,
@@ -87,7 +78,6 @@ fun HeaderReceta(
                 modifier = Modifier.size(30.dp)
             )
         },
-
         contentLeft = {
             Text(
                 text = receta.nombre,
@@ -96,32 +86,25 @@ fun HeaderReceta(
             )
 
             Text(
-                text = "${receta.ingredientes.size} ingredientes",
+                text = receta.ultimaProduccion,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
-
         contentRight = {
-            Text(
-                text = receta.ingredientes.size.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1565C0)
+            IndicadorCocinado(
+                texto = estado.texto,
+                color = estado.color
             )
-
-            Text("ING")
         }
     )
 }
 
 @Composable
 fun ListaIngredientesTicket(
-    ingredientes: List<Ingrediente>
+    ingredientes: List<IngredienteDetalleUI>
 ) {
-
     Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-
         Text(
             text = "Ingredientes",
             style = MaterialTheme.typography.titleMedium,
@@ -131,11 +114,7 @@ fun ListaIngredientesTicket(
 
         LazyColumn {
             items(ingredientes) { ingrediente ->
-                ItemIngredienteTicket(
-                    nombre = ingrediente.nombre,
-                    cantidad = ingrediente.cantidad,
-                    unidad = ingrediente.unidad
-                )
+                ItemIngredienteTicket(ingrediente)
             }
         }
     }
@@ -143,10 +122,13 @@ fun ListaIngredientesTicket(
 
 @Composable
 fun ItemIngredienteTicket(
-    nombre: String,
-    cantidad: Double? = null,
-    unidad: String
+    ingrediente: IngredienteDetalleUI
 ) {
+    val colorStock = if (ingrediente.stockInsuficiente) {
+        Color(0xFFC62828)
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     Column {
 
@@ -154,36 +136,45 @@ fun ItemIngredienteTicket(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = ingrediente.nombre,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
 
-            Text(
-                text = nombre,
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            fun formatCantidad(cantidad: Double): String {
-                return if (cantidad % 1.0 == 0.0) {
-                    cantidad.toInt().toString()
-                } else {
-                    cantidad.toString()
-                }
+                Text(
+                    text = "Stock actual: ${ingrediente.stockActual ?: "-"} ${ingrediente.unidad}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorStock
+                )
             }
 
-            if (cantidad != null) {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "${formatCantidad(cantidad)} $unidad",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    text = "${formatCantidad(ingrediente.cantidadNecesaria)} ${ingrediente.unidad}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colorStock
                 )
             }
         }
 
-        // Línea separadora (clave estética ticket)
         HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant,
             thickness = 0.5.dp
         )
+    }
+}
+
+private fun formatCantidad(cantidad: Double): String {
+    return if (cantidad % 1.0 == 0.0) {
+        cantidad.toInt().toString()
+    } else {
+        cantidad.toString()
     }
 }
 
