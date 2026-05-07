@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Dining
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.Warning
@@ -55,7 +56,8 @@ fun PantallaDashboard(
     refrescarProduccion: Boolean = false,
     onRefrescoProduccionConsumido: () -> Unit = {},
     onVerAlertas: () -> Unit,
-    onRegistrarProduccion: () -> Unit
+    onRegistrarProduccion: () -> Unit,
+    onVerHistorico: () -> Unit
 ) {
     val state = viewModel.state
 
@@ -74,7 +76,8 @@ fun PantallaDashboard(
             listaProduccion = state.datos,
             alertas = viewModel.numeroAlertas,
             onVerAlertas = onVerAlertas,
-            onRegistrarProduccion = onRegistrarProduccion
+            onRegistrarProduccion = onRegistrarProduccion,
+            onVerHistorico = onVerHistorico
         )
     }
 }
@@ -84,7 +87,8 @@ fun PantallaDashboardExito(
     listaProduccion: List<Produccion>,
     alertas: Int,
     onVerAlertas: () -> Unit,
-    onRegistrarProduccion: () -> Unit
+    onRegistrarProduccion: () -> Unit,
+    onVerHistorico: () -> Unit
 ) {
 
     Box(
@@ -104,12 +108,28 @@ fun PantallaDashboardExito(
                 .fillMaxWidth()
         ) {
 
-            Text(
-                text = stringResource(R.string.produccion_de_hoy),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(12.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.produccion_de_hoy),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Button(onClick = onVerHistorico) {
+                    Icon(
+                        imageVector = Icons.Filled.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = stringResource(R.string.ver_historico))
+                }
+            }
 
             if (listaProduccion.isEmpty()) {
                 Box(

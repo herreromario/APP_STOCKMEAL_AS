@@ -33,6 +33,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.stockmeal.R
 import com.example.stockmeal.modelos.BottomItem
 import com.example.stockmeal.ui.pantallas.PantallaDashboard
+import com.example.stockmeal.ui.pantallas.PantallaHistoricoProduccion
 import com.example.stockmeal.ui.pantallas.PantallaRecetaDetalle
 import com.example.stockmeal.ui.pantallas.PantallaRecetas
 import com.example.stockmeal.ui.pantallas.PantallaRegistrarProduccion
@@ -44,6 +45,7 @@ enum class Pantallas(@StringRes val titulo: Int) {
     Dashboard(R.string.dashboard),
     RegistrarProduccion(R.string.registrar_produccion),
     SeleccionarPlatoProduccion(R.string.seleccionar_plato),
+    HistoricoProduccion(R.string.historico_produccion),
     Recetas(R.string.recetas),
     RecetaDetalle(R.string.detalles_de_la_receta),
     Stock(R.string.stock)
@@ -157,6 +159,9 @@ fun StockMealApp() {
                     },
                     onRegistrarProduccion = {
                         navController.navigate(Pantallas.RegistrarProduccion.name)
+                    },
+                    onVerHistorico = {
+                        navController.navigate(Pantallas.HistoricoProduccion.name)
                     }
                 )
             }
@@ -168,6 +173,10 @@ fun StockMealApp() {
 
             composable(Pantallas.SeleccionarPlatoProduccion.name) {
                 PantallaSeleccionarPlatoProduccion(navController)
+            }
+
+            composable(Pantallas.HistoricoProduccion.name) {
+                PantallaHistoricoProduccion()
             }
 
             composable(Pantallas.Recetas.name) {
